@@ -1,0 +1,90 @@
+{
+  "agent_name": "MultiStageReasoningAgent",
+  "description": "Advanced agent that performs complex tasks with multi-stage reasoning and research",
+  "nodes": [
+    {
+      "id": "task_analysis",
+      "type": "llm",
+      "objective": "Analyze the user's task and plan the steps to complete it. Determine what data is needed.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.5
+    },
+    {
+      "id": "web_research",
+      "type": "web_search",
+      "objective": "Search for information on the internet based on task analysis",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.5
+    },
+    {
+      "id": "content_generation",
+      "type": "llm",
+      "objective": "Create the first version of content/response based on collected data and analysis",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.7
+    },
+    {
+      "id": "review_and_critique",
+      "type": "llm",
+      "objective": "Critical analysis of the generated content, identifying areas for improvement and suggestions for changes",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.3
+    },
+    {
+      "id": "fact_check",
+      "type": "web_search",
+      "objective": "Verify facts and claims contained in the generated content",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.2
+    },
+    {
+      "id": "revision",
+      "type": "llm",
+      "objective": "Revise content based on reviews, fact verification, and change suggestions",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.6
+    },
+    {
+      "id": "final_response",
+      "type": "llm",
+      "objective": "Prepare the final response for the user with an explanation of the reasoning process",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.5
+    }
+  ],
+  "edges": [
+    {
+      "source": "START",
+      "target": "task_analysis"
+    },
+    {
+      "source": "task_analysis",
+      "target": "web_research"
+    },
+    {
+      "source": "web_research",
+      "target": "content_generation"
+    },
+    {
+      "source": "content_generation",
+      "target": "review_and_critique"
+    },
+    {
+      "source": "review_and_critique",
+      "target": "fact_check"
+    },
+    {
+      "source": "fact_check",
+      "target": "revision"
+    },
+    {
+      "source": "revision",
+      "target": "final_response"
+    },
+    {
+      "source": "final_response",
+      "target": "END"
+    }
+  ],
+  "additional_state_fields": {}
+} 

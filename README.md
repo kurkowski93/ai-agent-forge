@@ -1,37 +1,42 @@
-# Chameleon AI Agent
+# AgentForge
 
-An adaptive AI agent that learns from interactions and modifies its own behavior to achieve goals. This project demonstrates how language models can observe, analyze, and adjust their strategies based on user interactions.
+An AI meta-agent system designed to autonomously create and optimize specialized AI agents based on user requirements and collected information.
 
 ## 🌟 Overview
 
-Chameleon AI Agent is an experimental platform showcasing the adaptive capabilities of modern language models. The system features an agent that:
+AgentForge is an ambitious project that aims to create a meta-agent capable of:
 
-1. Engages with users through natural conversation
-2. Identifies values, preferences, and beliefs
-3. Gradually adjusts its communication strategy
-4. Attempts to persuade users toward specific viewpoints
-5. Provides transparent logs of its adaptation process
+1. Understanding user needs and requirements for specialized AI agents
+2. Designing optimal agent architectures based on gathered information
+3. Automatically generating custom agents with appropriate behaviors
+4. Continuously refining and improving agent performance
 
-This project serves both as a technical demonstration and an educational tool highlighting the capabilities and ethical implications of adaptive AI systems.
+The current implementation represents an initial proof of concept, demonstrating the foundational technology that will enable agent generation using a JSON-based configuration system. This serves as the core mechanism that the meta-agent will leverage to craft specialized agents.
 
-## ✨ Features
+## ✨ Current Features (PoC)
 
-- **Self-modifying Agent**: Core AI that can update its own goals and strategies
-- **Web Interface**: Interactive dashboard showing real-time agent adaptation
-- **Conversation History**: Complete log of all user-agent interactions
-- **Strategy Visualization**: Visual representation of how the agent's approach evolves
-- **Comparative Analysis**: Side-by-side comparison with a static (non-adaptive) agent
+- **JSON-based Agent Generation**: Create full-fledged LangGraph agents from configuration files
+- **Modular Architecture**: Easily define nodes of various types (LLM, web search, etc.)
+- **Configurable Graph**: Flexible workflow definition by connecting nodes with edges
+- **Extensibility**: Prepared for adding new node types and functionalities
 
-## 🧪 Experiment Ideas
+## 🚀 Future Development Directions
 
-- Compare how quickly the agent adapts to different user profiles
-- Analyze which persuasion techniques are most effective
-- Study the ethical boundaries of adaptive systems
-- Explore safeguards against manipulative behavior
+- Meta-agent that interprets client needs and generates optimal agent specifications
+- User interface for visually designing agents
+- Library of ready-made, specialized agent components
+- Ability to combine agents into more complex systems
+- Self-improving agents that learn from interactions
 
-## ⚠️ Ethical Considerations
+## 🛠️ How to Use (Current PoC)
 
-This project is designed for educational purposes to demonstrate the potential capabilities and risks of adaptive AI systems. The ethical implications of AI persuasion and adaptation are complex, and this project aims to promote thoughtful discussion on responsible AI development.
+1. Define your agent in a JSON file according to the schema in `example_config.json`
+2. Use the `create_agent_from_config()` function to generate the agent
+3. Run the agent with selected input parameters
+
+## ⚠️ Project Status
+
+This project is currently in the Proof of Concept phase. The current code demonstrates the possibility of creating agents based on a JSON file, which forms the foundation for further development of the platform for building adaptive, specialized AI agents.
 
 ---
 
