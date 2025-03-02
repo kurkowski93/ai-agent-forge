@@ -2,8 +2,8 @@ from enum import Enum
 from typing import Dict, Any, Callable, List, Optional
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
-from .state import AgentForgeState
-from .config_schema import NodeConfig
+from agents_forge.agents_generation.state import AgentForgeState
+from agents_forge.agents_generation.config_schema import NodeConfig
 from pydantic import BaseModel, Field
 from langchain_community.tools.tavily_search import TavilySearchResults
 

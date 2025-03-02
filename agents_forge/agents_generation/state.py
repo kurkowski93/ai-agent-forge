@@ -5,7 +5,7 @@ from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 
 
-class AgentForgeState(MessagesState):
+class AgentsGenerationState(MessagesState):
     """State class for AgentForge agent."""
     agent_instructions: str = Field(description="Instructions for the agent")
     

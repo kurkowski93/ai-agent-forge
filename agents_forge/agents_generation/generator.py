@@ -2,11 +2,11 @@ import json
 import importlib
 from typing import Dict, Any, Optional
 from langgraph.graph import StateGraph, END, START
-from .state import AgentForgeState
-from .node_types import create_node, NodeType
+from agents_forge.agents_generation.state import AgentForgeState
+from agents_forge.agents_generation.node_types import create_node, NodeType
 from langgraph.checkpoint.memory import MemorySaver
 from pydantic import BaseModel, create_model, Field
-from .config_schema import AgentConfig
+from agents_forge.agents_generation.config_schema import AgentConfig
 
 async def generate_agent_from_config(config_path: str):
     """
