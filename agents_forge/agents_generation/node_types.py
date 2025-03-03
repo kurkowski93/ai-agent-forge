@@ -2,8 +2,8 @@ from enum import Enum
 from typing import Dict, Any, Callable, List, Optional
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
-from .state import AgentForgeState
-from .config_schema import NodeConfig
+from agents_forge.agents_generation.state import AgentsGenerationState
+from agents_forge.agents_generation.config_schema import NodeConfig
 from pydantic import BaseModel, Field
 from langchain_community.tools.tavily_search import TavilySearchResults
 
@@ -22,11 +22,11 @@ async def create_llm_node(config: NodeConfig) -> Callable:
     Returns:
         A callable function that represents the node in the agent graph
     """
-    model_name = config.model_name
-    temperature = config.temperature
+    model_name = config.model_name if hasattr(config, 'model_name') else "gpt-4o-mini"
+    temperature = config.temperature if hasattr(config, 'temperature') else 0.3
     system_prompt = config.objective
     
-    async def llm_node(state: AgentForgeState) -> AgentForgeState:
+    async def llm_node(state: AgentsGenerationState) -> AgentsGenerationState:
         llm = ChatOpenAI(model=model_name, temperature=temperature)
         
         print(f"[{config.id}] querying LLM with prompt: {system_prompt} + {state['messages'][-1].content}")
@@ -55,7 +55,7 @@ async def create_web_search_node(config: NodeConfig) -> Callable:
     structured_llm = ChatOpenAI(model=config.model_name, temperature=config.temperature).with_structured_output(SearchQuery)
     
     
-    async def web_search_node(state: AgentForgeState) -> AgentForgeState:
+    async def web_search_node(state: AgentsGenerationState) -> AgentsGenerationState:
         search_instructions = SystemMessage(content=f"""
             You will be given a conversation between an analyst and an expert. 
             Your goal is to generate a well-structured query for use in retrieval and / or web-search related to the conversation.     

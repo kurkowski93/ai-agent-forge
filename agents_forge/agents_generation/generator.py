@@ -2,13 +2,13 @@ import json
 import importlib
 from typing import Dict, Any, Optional
 from langgraph.graph import StateGraph, END, START
-from .state import AgentForgeState
-from .node_types import create_node, NodeType
+from agents_forge.agents_generation.state import AgentsGenerationState
+from agents_forge.agents_generation.node_types import create_node
 from langgraph.checkpoint.memory import MemorySaver
 from pydantic import BaseModel, create_model, Field
-from .config_schema import AgentConfig
+from agents_forge.agents_generation.config_schema import AgentConfig
 
-async def generate_agent_from_config(config_path: str):
+async def generate_agent_from_config(config_from_ai: AgentConfig):
     """
     Generate an agent from a JSON configuration file.
     
@@ -27,19 +27,12 @@ async def generate_agent_from_config(config_path: str):
         ValidationError: If the configuration doesn't match the expected schema
     """
     # Load the configuration
-    try:
-        with open(config_path, 'r') as f:
-            config_data = json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
-    except json.JSONDecodeError:
-        raise json.JSONDecodeError(f"Invalid JSON in configuration file: {config_path}")
-    
+
     # Validate the configuration using Pydantic
-    config = AgentConfig.model_validate(config_data)
+    config = AgentConfig.model_validate(config_from_ai)
     
     # Initialize state graph
-    workflow = StateGraph(AgentForgeState)
+    workflow = StateGraph(AgentsGenerationState)
     
     # Create and add nodes
     for node_config in config.nodes:
