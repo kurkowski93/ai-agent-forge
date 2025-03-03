@@ -1,0 +1,34 @@
+{
+  "agent_name": "Joke Evaluator",
+  "description": "To generate a joke and evaluate its funniness.",
+  "nodes": [
+    {
+      "id": "generate_joke",
+      "type": "llm",
+      "objective": "Generate a random joke.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.5
+    },
+    {
+      "id": "evaluate_joke",
+      "type": "llm",
+      "objective": "Assess the generated joke for funniness.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.3
+    }
+  ],
+  "edges": [
+    {
+      "source": "START",
+      "target": "generate_joke"
+    },
+    {
+      "source": "generate_joke",
+      "target": "evaluate_joke"
+    },
+    {
+      "source": "evaluate_joke",
+      "target": "END"
+    }
+  ]
+}

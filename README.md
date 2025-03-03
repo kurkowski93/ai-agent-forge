@@ -18,7 +18,52 @@ The current implementation represents an initial proof of concept, demonstrating
 - **JSON-based Agent Generation**: Create full-fledged LangGraph agents from configuration files
 - **Modular Architecture**: Easily define nodes of various types (LLM, web search, etc.)
 - **Configurable Graph**: Flexible workflow definition by connecting nodes with edges
+- **Web Interface**: React-based UI for interacting with agents
+- **FastAPI Backend**: Robust API for agent communication
 - **Extensibility**: Prepared for adding new node types and functionalities
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.10+ 
+- Node.js 18+
+- An OpenAI API key (set in `.env` file)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd chameleon-ai-agent
+   ```
+
+2. Set up the environment variables:
+   ```bash
+   cp example.env .env
+   # Edit .env to add your OpenAI API key
+   ```
+
+3. Run the application:
+   ```bash
+   ./run.sh
+   ```
+
+   This will:
+   - Activate the Python virtual environment (if it exists)
+   - Install required dependencies
+   - Start the FastAPI backend server
+   - Start the React frontend development server
+
+4. Open your browser and navigate to:
+   - Frontend: http://localhost:3000
+   - API Documentation: http://localhost:8000/docs
+
+## 🛠️ How to Use
+
+1. **Chat with Core Agent**: Start by chatting with the core agent to describe what kind of agent you want to create
+2. **Generate Agent**: Once the agent configuration is ready (indicated in the Agent State panel), click the "Generate Agent" button
+3. **Interact with Generated Agent**: After generation, you can interact with your new agent in the right panel
 
 ## 🚀 Future Development Directions
 
@@ -27,12 +72,6 @@ The current implementation represents an initial proof of concept, demonstrating
 - Library of ready-made, specialized agent components
 - Ability to combine agents into more complex systems
 - Self-improving agents that learn from interactions
-
-## 🛠️ How to Use (Current PoC)
-
-1. Define your agent in a JSON file according to the schema in `example_config.json`
-2. Use the `create_agent_from_config()` function to generate the agent
-3. Run the agent with selected input parameters
 
 ## ⚠️ Project Status
 

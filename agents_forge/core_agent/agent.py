@@ -31,7 +31,7 @@ async def generate_core_agent():
     )
     
     
-    builder.add_edge(NextStep.UPDATE_BLUEPRINT, END)
+    builder.add_edge(NextStep.UPDATE_BLUEPRINT, "step_planner")
     builder.add_edge(NextStep.ASK_FOLLOWUP, END)
     builder.add_edge(NextStep.GENERATE_AGENT, END)
     

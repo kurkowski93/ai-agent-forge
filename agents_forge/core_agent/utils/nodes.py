@@ -82,7 +82,7 @@ async def update_blueprint(state: AgentCreatorState) -> AgentCreatorState:
     
     response = await llm.ainvoke(system_prompt)
     
-    return { "agent_blueprint": response.content}
+    return { "agent_blueprint": response.content, "messages": [AIMessage(content="Blueprint updated successfully")]}
 
 async def ask_followup(state: AgentCreatorState) -> AgentCreatorState:
     """
@@ -198,4 +198,4 @@ async def generate_agent(state: AgentCreatorState) -> AgentCreatorState:
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1).with_structured_output(AgentConfig)
     # Get structured response directly
     config = await llm.ainvoke(system_prompt)
-    return {"agent_config": config}
+    return {"agent_config": config, "messages": [AIMessage(content="Agent generated successfully")]}

@@ -1,0 +1,56 @@
+{
+  "agent_name": "Joke Enhancer Agent",
+  "description": "To generate a joke, evaluate its quality, and improve it based on feedback.",
+  "nodes": [
+    {
+      "id": "generate_joke",
+      "type": "llm",
+      "objective": "Generate a random joke.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.5
+    },
+    {
+      "id": "evaluate_joke",
+      "type": "llm",
+      "objective": "Evaluate the quality of the generated joke.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.3
+    },
+    {
+      "id": "improve_joke",
+      "type": "llm",
+      "objective": "Enhance the joke based on the evaluation feedback.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.4
+    },
+    {
+      "id": "present_joke",
+      "type": "llm",
+      "objective": "Present the improved joke to the user.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.2
+    }
+  ],
+  "edges": [
+    {
+      "source": "START",
+      "target": "generate_joke"
+    },
+    {
+      "source": "generate_joke",
+      "target": "evaluate_joke"
+    },
+    {
+      "source": "evaluate_joke",
+      "target": "improve_joke"
+    },
+    {
+      "source": "improve_joke",
+      "target": "present_joke"
+    },
+    {
+      "source": "present_joke",
+      "target": "END"
+    }
+  ]
+}

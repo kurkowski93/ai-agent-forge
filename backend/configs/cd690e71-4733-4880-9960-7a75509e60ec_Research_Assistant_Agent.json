@@ -1,0 +1,56 @@
+{
+  "agent_name": "Research Assistant Agent",
+  "description": "An agent designed to gather and synthesize information for research purposes.",
+  "nodes": [
+    {
+      "id": "search_initial_info",
+      "type": "web_search",
+      "objective": "Gather initial information on the specified research topic.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.2
+    },
+    {
+      "id": "analyze_info",
+      "type": "llm",
+      "objective": "Analyze the gathered information and identify key points.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.3
+    },
+    {
+      "id": "search_supporting_evidence",
+      "type": "web_search",
+      "objective": "Find supporting evidence and recent studies related to the key points identified.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.2
+    },
+    {
+      "id": "synthesize_findings",
+      "type": "llm",
+      "objective": "Synthesize the findings and create a coherent summary of the research.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.4
+    }
+  ],
+  "edges": [
+    {
+      "source": "START",
+      "target": "search_initial_info"
+    },
+    {
+      "source": "search_initial_info",
+      "target": "analyze_info"
+    },
+    {
+      "source": "analyze_info",
+      "target": "search_supporting_evidence"
+    },
+    {
+      "source": "search_supporting_evidence",
+      "target": "synthesize_findings"
+    },
+    {
+      "source": "synthesize_findings",
+      "target": "END"
+    }
+  ]
+}

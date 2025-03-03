@@ -58,4 +58,46 @@ yarn-error.log*
 htmlcov/
 
 # Distribution / packaging
-.Python 
+.Python
+
+# Node.js / Frontend
+node_modules/
+coverage/
+.next/
+out/
+.nuxt/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+
+# Frontend builds
+frontend/dist/
+frontend/build/
+
+# Backend specific
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/*/__pycache__/
+backend/.pytest_cache/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# LangSmith
+.langchain.db
+.langchain/
+
+# Local development
+*.local 

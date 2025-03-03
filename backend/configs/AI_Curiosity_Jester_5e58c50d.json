@@ -1,0 +1,56 @@
+{
+  "agent_name": "AI Curiosity Jester",
+  "description": "To find an interesting fact about the AI field, tell a joke related to it, evaluate the joke, and combine all elements into a humorous story.",
+  "nodes": [
+    {
+      "id": "node_1",
+      "type": "web_search",
+      "objective": "Search for an interesting fact about the AI field.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.2
+    },
+    {
+      "id": "node_2",
+      "type": "llm",
+      "objective": "Generate a joke related to the interesting fact found in Node 1.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.6
+    },
+    {
+      "id": "node_3",
+      "type": "llm",
+      "objective": "Evaluate the joke generated in Node 2 for humor and relevance.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.3
+    },
+    {
+      "id": "node_4",
+      "type": "llm",
+      "objective": "Combine the interesting fact from Node 1, the joke from Node 2, and the evaluation from Node 3 into a funny story.",
+      "model_name": "gpt-4o-mini",
+      "temperature": 0.5
+    }
+  ],
+  "edges": [
+    {
+      "source": "START",
+      "target": "node_1"
+    },
+    {
+      "source": "node_1",
+      "target": "node_2"
+    },
+    {
+      "source": "node_2",
+      "target": "node_3"
+    },
+    {
+      "source": "node_3",
+      "target": "node_4"
+    },
+    {
+      "source": "node_4",
+      "target": "END"
+    }
+  ]
+}
