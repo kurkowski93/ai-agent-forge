@@ -5,7 +5,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 memory = MemorySaver()
 
-async def generate_agent():
+async def generate_core_agent():
     
     builder = StateGraph(AgentCreatorState)
     
