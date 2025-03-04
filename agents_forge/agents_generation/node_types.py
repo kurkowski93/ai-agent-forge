@@ -20,7 +20,7 @@ class NodeType(str, Enum):
     LLM = "llm"                     # Basic LLM call with messages
     WEB_SEARCH = "web_search"       # Search the web for information
 
-async def create_llm_node(config: NodeConfig) -> Callable:
+def create_llm_node(config: NodeConfig) -> Callable:
     """
     Create a basic LLM node that processes messages using a language model.
     
@@ -34,7 +34,7 @@ async def create_llm_node(config: NodeConfig) -> Callable:
     temperature = config.temperature if hasattr(config, 'temperature') else 0.3
     system_prompt = config.objective
     
-    async def llm_node(state: AgentsGenerationState) -> AgentsGenerationState:
+    def llm_node(state: AgentsGenerationState) -> AgentsGenerationState:
         llm = ChatOpenAI(model=model_name, temperature=temperature)
         
         logger.info(f"[{config.id}] querying LLM with {len(state['messages'])} messages")
@@ -49,7 +49,7 @@ async def create_llm_node(config: NodeConfig) -> Callable:
         
         # Call LLM
         logger.info(f"[{config.id}] sending request to model {model_name}")
-        response = await llm.ainvoke(messages_with_system)
+        response = llm.invoke(messages_with_system)
         logger.info(f"[{config.id}] received response from LLM")
         
         # Return updated state
@@ -57,7 +57,7 @@ async def create_llm_node(config: NodeConfig) -> Callable:
     
     return llm_node
 
-async def create_web_search_node(config: NodeConfig) -> Callable:
+def create_web_search_node(config: NodeConfig) -> Callable:
     """
     Create a web search node that retrieves information from the internet.
     
@@ -73,20 +73,20 @@ async def create_web_search_node(config: NodeConfig) -> Callable:
     structured_llm = ChatOpenAI(model=config.model_name, temperature=config.temperature).with_structured_output(SearchQuery)
     
     
-    async def web_search_node(state: AgentsGenerationState) -> AgentsGenerationState:
+    def web_search_node(state: AgentsGenerationState) -> AgentsGenerationState:
         search_instructions = SystemMessage(content=f"""
             You will be given a conversation between an analyst and an expert. 
             Your goal is to generate a well-structured query for use in retrieval and / or web-search related to the conversation.     
             First, analyze the full conversation.
             Convert this final question into a well-structured web search query""")
 
-        search_query = await structured_llm.ainvoke([search_instructions]+state['messages'])
+        search_query = structured_llm.invoke([search_instructions]+state['messages'])
         
         logger.info(f"[{config.id}] performing web search with query: {search_query}")
          # Search
         tavily_search = TavilySearchResults(max_results=3)
         
-        search_results = await tavily_search.ainvoke(search_query.search_query)
+        search_results = tavily_search.invoke(search_query.search_query)
         
         formatted_search_results = "\n\n---\n\n".join(
             [
@@ -104,7 +104,7 @@ async def create_web_search_node(config: NodeConfig) -> Callable:
     return web_search_node
 
 # Factory function to create nodes based on type
-async def create_node(node_type: str, config: Dict[str, Any]) -> Callable:
+def create_node(node_type: str, config: Dict[str, Any]) -> Callable:
     """
     Factory function to create nodes based on their type.
     
@@ -122,9 +122,9 @@ async def create_node(node_type: str, config: Dict[str, Any]) -> Callable:
     logger.info(f"Creating node: {config.id} of type {config.type}")
     
     if node_type == NodeType.LLM:
-        return await create_llm_node(config)
+        return create_llm_node(config)
     elif node_type == NodeType.WEB_SEARCH:
-        return await create_web_search_node(config)
+        return create_web_search_node(config)
     else:
         logger.error(f"Unknown node type: {node_type}")
         raise ValueError(f"Unknown node type: {node_type}. Supported types: {[t.value for t in NodeType]}") 

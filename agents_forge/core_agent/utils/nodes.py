@@ -18,23 +18,22 @@ def step_planner(state: AgentCreatorState) -> AgentCreatorState:
     logger.info(f"Executing step_planner with blueprint: {state.agent_blueprint}")
     
     system_prompt = SystemMessage(content=f"""
-You're expert agent creator. Based on current state of agent blueprint decide what is best next step to do:
-1) UPDATE_BLUEPRINT - when you need to update the blueprint based on user feedback
+You're expert agent creator. Based on current state decide what is best next step to do:
+1) UPDATE_BLUEPRINT - when you know more from mesages thats already in blueprint -> always do this and keep blueprint updated
 2) ASK_FOLLOWUP - when you need more information from user to create a good agent
-3) GENERATE_AGENT - when you have enough information to generate a custom agent
+3) GENERATE_AGENT - when you have enough information to generate a custom agent, and your blueprint is fully updated
 
 Blueprint: {state.agent_blueprint if state.agent_blueprint else "No blueprint yet"}
+Message: {state.messages}
 
-Current user message: {state.messages}
-
-Respond with the next step.
+Respond with the next step:
 """)
     
     class PlannerResponse(BaseModel):
         next_step: NextStep = Field(description="Next step to do")
         
     logger.info("Querying LLM for step planning")
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1).with_structured_output(PlannerResponse)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1).with_structured_output(PlannerResponse, method="json_schema")
     
     # Create a combined message list with system prompt
     response = llm.invoke([system_prompt])
@@ -61,14 +60,14 @@ A good agent blueprint should:
 - Accomplish one particular step in the overall workflow
 
 Current blueprint: {state.agent_blueprint if state.agent_blueprint else "No blueprint yet"}
+Messages: {state.messages}
 """)]
     
-    # Limit messages to last MAX_MESSAGES
-    limited_messages = state.messages
+    
     
     logger.info("Querying LLM for blueprint update")
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
-    response = llm.invoke(system_prompt + limited_messages)
+    response = llm.invoke(system_prompt)
     logger.info("LLM responded with updated blueprint")
     
     return { "agent_blueprint": response.content, "messages": [AIMessage(content="Updated blueprint: " + response.content)] }
@@ -107,32 +106,71 @@ def generate_agent(state: AgentCreatorState) -> AgentCreatorState:
     """Generate an agent configuration based on the blueprint."""
     logger.info(f"Executing generate_agent with blueprint: {state.agent_blueprint}")
     
-    system_prompt = SystemMessage(content=f"""
-You are an expert agent designer. Your task is to create a complete agent configuration based on the blueprint provided.
-
-A good agent configuration should:
-- Define a clear purpose and goal for the agent
-- Specify the agent's capabilities through a collection of nodes
-- Design for reliability by making each step's purpose and output clear
-- Include appropriate safeguards and error handling
-
-The agent configuration must follow this structure:
-- agent_name: A descriptive name for the agent
-- description: A detailed description of what the agent does
-- nodes: A list of processing nodes that make up the agent's workflow
-   - Each node must have an id, type, objective, model_name, and temperature
-   - Use nodes to break complex tasks into manageable steps
-- edges: A list of edges connecting the nodes, each with source and target node IDs
-
-Blueprint:
-{state.agent_blueprint}
-
-Return a complete, valid agent configuration in JSON format.
-""")
+    system_prompt = f"""
+        You're an expert agent creator. Your task is to generate a JSON configuration for an agent based on the blueprint.
+        
+        UNDERSTANDING AGENTS:
+        An agent is a sequence of atomic actions (nodes) that AI will execute in a specific order. Each node in the 
+        sequence must:
+        - Be focused on a single, specific task (atomic)
+        - Have a clear input and output
+        - Accomplish one particular step in the overall workflow
+        
+        The goal is to break down complex reasoning into a series of smaller, manageable steps that together 
+        form a coherent workflow. This maximizes reliability and makes it easier to debug the agent's behavior.
+        
+        AVAILABLE NODE TYPES:
+        1. "llm" - Language model interaction nodes:
+           - Purpose: Process information, generate content, or make decisions
+           - Configuration: Requires model_name, temperature, and a clear objective
+           - Best for: Analysis, summarization, content generation, decision-making
+        
+        2. "web_search" - Internet search nodes:
+           - Purpose: Retrieve real-time information from the web
+           - Configuration: Requires model_name, temperature, and search objective
+           - Best for: Gathering current data, researching topics, finding specific information
+        
+        NODE CONFIGURATION REQUIREMENTS:
+        - id: A unique, descriptive identifier (e.g., "search_news", "summarize_findings")
+        - type: Either "llm" or "web_search"
+        - objective: Clear instructions for what the node should accomplish
+        - model_name: Recommend using "gpt-4o-mini" for optimal performance
+        - temperature: 0.0-0.3 for factual/precise tasks, 0.4-0.7 for creative tasks
+        
+        EDGE CONFIGURATION:
+        Edges must create a linear path from START to END:
+        ```json
+        [
+          ..."source": "START", "target": "first_node"...
+          ..."source": "first_node", "target": "second_node"..,
+          ...
+          "source": "last_node", "target": "END"
+        ]
+        ```
+        
+        AGENT DESIGN PRINCIPLES:
+        - Break complex tasks into 3-7 focused nodes for optimal performance
+        - Use web_search nodes to gather information before processing with llm nodes
+        - Make each node's objective specific and actionable
+        - Ensure the complete workflow addresses all requirements in the blueprint
+        - Design for reliability by making each step's purpose and output clear
+        
+        EXAMPLE STRUCTURE:
+        For a research agent:
+        1. web_search node to gather initial information
+        2. llm node to analyze and identify key points
+        3. web_search node to find supporting evidence
+        4. llm node to synthesize findings into a final output
+        
+        Based on the blueprint below, create a complete agent configuration with appropriate nodes and edges:
+        
+        {state.agent_blueprint}
+        {state.messages}
+    """
     
     # LLM with structured output using the AgentConfig schema
     logger.info("Querying LLM for agent generation")
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1).with_structured_output(AgentConfig)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1).with_structured_output(AgentConfig, method="json_schema")
     
     config = llm.invoke([system_prompt])
     logger.info(f"LLM responded with agent configuration: {config.agent_name}")

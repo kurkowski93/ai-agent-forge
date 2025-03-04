@@ -147,19 +147,36 @@ def display_agent_graph(agent):
     # Generate a temporary filename
     graph_path = "temp_graph.png"
     
-    # Get the agent to generate its graph visualization
     try:
-        agent.save_graph(graph_path)
-        rprint(f"[bold blue]📊 Agent graph saved to {graph_path}[/bold blue]")
+        # Try different approaches based on agent type
+        if hasattr(agent, 'save_graph'):
+            # Original approach
+            agent.save_graph(graph_path)
+            rprint(f"[bold blue]📊 Agent graph saved to {graph_path}[/bold blue]")
+        elif hasattr(agent, 'get_graph'):
+            # Use get_graph().draw_mermaid_png() as seen in test_agent.ipynb
+            graph = agent.get_graph()
+            if hasattr(graph, 'draw_mermaid_png'):
+                with open(graph_path, 'wb') as f:
+                    f.write(graph.draw_mermaid_png())
+                rprint(f"[bold blue]📊 Agent graph saved to {graph_path}[/bold blue]")
+            else:
+                rprint(f"[bold yellow]⚠️ Agent graph object doesn't support draw_mermaid_png[/bold yellow]")
+                return False
+        else:
+            rprint(f"[bold yellow]⚠️ This agent type ({type(agent).__name__}) doesn't support graph visualization[/bold yellow]")
+            return False
     except Exception as e:
         rprint(f"[bold red]❌ Error generating agent graph: {e}[/bold red]")
-        return
+        return False
     
     # Try to display the image in the terminal
-    if display_image_in_terminal(graph_path):
+    if os.path.exists(graph_path) and display_image_in_terminal(graph_path):
         rprint("[bold green]✅ Graph displayed![/bold green]")
     else:
         rprint(f"[bold yellow]ℹ️ Unable to display image in terminal. You can view the graph by opening {graph_path}[/bold yellow]")
+    
+    return True
 
 def initialize_core_agent():
     """Initialize the core agent and return it."""
@@ -186,7 +203,7 @@ def save_agent_config(config: Any, filename: str = "agent_config.json"):
     
     try:
         # Convert config to JSON and save to file
-        config_json = config.json()
+        config_json = config.model_dump_json()
         with open(file_path, 'w') as f:
             f.write(config_json)
         
@@ -248,12 +265,12 @@ async def load_agent_from_file(filename: str):
             config_json = f.read()
         
         # Parse the JSON into an AgentConfig object
-        agent_config = AgentConfig.parse_raw(config_json)
+        agent_config = AgentConfig.model_validate_json(config_json)
         
         # Create a loading message
         with console.status(f"[bold green]🔄 Loading agent {agent_config.agent_name}...[/bold green]"):
             # Generate the agent from the configuration
-            agent = await generate_agent_from_config(agent_config)
+            agent = generate_agent_from_config(agent_config)
             
             rprint(f"[bold green]✅ Agent {agent_config.agent_name} loaded successfully![/bold green]")
             return agent
@@ -294,53 +311,60 @@ async def chat_with_core_agent():
         
         # Handle 'generate' command
         if user_input.lower() == "generate":
-            with console.status("[bold green]🔄 Generating agent...[/bold green]"):
-                try:
-                    # Call agent to generate
-                    response = await agent.ainvoke({"messages": messages}, config)
-                    
-                    # Check if agent_config exists in the state
-                    state_snapshot = agent.get_state(config)
-                    agent_config = state_snapshot.values.get('agent_config')
-                    
-                    if agent_config:
-                        # Save the configuration
+            try:
+                # Check if agent_config exists in the state
+                state_snapshot = agent.get_state(config)
+                agent_config = state_snapshot.values.get('agent_config')
+                
+                if agent_config:
+                    # Save the configuration with a clear status
+                    with console.status("[bold green]🔄 Save agent...[/bold green]") as status:
                         save_agent_config(agent_config)
-                        
-                        # Display agent information
-                        rprint(Panel.fit(
-                            f"[bold green]✅ Agent generated successfully![/bold green]\n\n"
-                            f"[bold]Agent Name:[/bold] {agent_config.agent_name}\n"
-                            f"[bold]Description:[/bold] {agent_config.description}\n\n"
-                            f"[bold]Structure:[/bold]\n"
-                            f"- Nodes: {len(agent_config.nodes)}\n"
-                            f"- Edges: {len(agent_config.edges)}\n\n"
-                            "You can now test this agent using the 'test' command.",
-                            title="🎉 Agent Generated",
-                            border_style="green"
-                        ))
-                        
-                        # Ask if the user wants to save the agent with a custom name
-                        if Confirm.ask("[bold yellow]Do you want to save this agent with a custom name?[/bold yellow]"):
-                            custom_name = Prompt.ask("[bold blue]Enter a name for this agent[/bold blue]")
+                    
+                    # Display agent information
+                    rprint(Panel.fit(
+                        f"[bold green]✅ Agent generated successfully![/bold green]\n\n"
+                        f"[bold]Agent Name:[/bold] {agent_config.agent_name}\n"
+                        f"[bold]Description:[/bold] {agent_config.description}\n\n"
+                        "You can now test this agent using the 'test' command.",
+                        title="🎉 Agent Generated",
+                        border_style="green"
+                    ))
+                    
+                    # Give user clear options after generating the agent
+                    rprint(Panel.fit(
+                        "What would you like to do next?\n\n"
+                        "1. [bold cyan]Save with custom name[/bold cyan]\n"
+                        "2. [bold cyan]Test this agent[/bold cyan]\n"
+                        "3. [bold cyan]Continue conversation[/bold cyan]\n"
+                        "4. [bold cyan]Exit[/bold cyan]",
+                        title="📋 Next Steps",
+                        border_style="blue"
+                    ))
+                    
+                    choice = Prompt.ask("[bold blue]Enter your choice[/bold blue]", choices=["1", "2", "3", "4"])
+                    
+                    if choice == "1":
+                        custom_name = Prompt.ask("[bold blue]Enter a name for this agent[/bold blue]")
+                        with console.status("[bold green]🔄 Save agent with custom name...[/bold green]"):
                             save_agent_config(agent_config, custom_name)
-                        
-                        # Ask if the user wants to test the agent
-                        if Confirm.ask("[bold yellow]Do you want to test this agent now?[/bold yellow]"):
-                            new_agent = await generate_agent_from_config(agent_config)
-                            display_agent_graph(new_agent)
+                    
+                    if choice == "1" or choice == "2":
+                        new_agent = generate_agent_from_config(agent_config)
+                        display_agent_graph(new_agent)
+                        if choice == "2":
                             await test_agent(new_agent)
-                        
+                            # After testing, return to main menu or exit
+                            if Confirm.ask("[bold yellow]Return to core agent conversation?[/bold yellow]"):
+                                continue
+                            else:
+                                break
+                    
+                    if choice == "4":
+                        rprint("[bold yellow]👋 Exiting conversation.[/bold yellow]")
                         break
-                    else:
-                        rprint("[bold red]❌ Failed to generate agent. Continue the conversation.[/bold red]")
-                        # Display the last agent response
-                        if response.get("messages") and len(response["messages"]) > 0:
-                            ai_message = response["messages"][-1]
-                            rprint(f"[bold green]Agent:[/bold green] {ai_message.content}")
-                            messages.append(ai_message)
-                except Exception as e:
-                    rprint(f"[bold red]❌ Error generating agent: {e}[/bold red]")
+            except Exception as e:
+                rprint(f"[bold red]❌ Error generating agent: {e}[/bold red]")
         else:
             # Process normal message with streaming
             rprint("[bold green]🤖 Agent is thinking...[/bold green]")
@@ -488,8 +512,8 @@ def test():
     """Load and test a saved agent."""
     asyncio.run(test_saved_agent())
 
-@app.command()
-def list():
+@app.command(name="list")
+def list_agents():
     """List all saved agent configurations."""
     list_saved_agents()
 

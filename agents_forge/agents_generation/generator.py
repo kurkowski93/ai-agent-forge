@@ -8,7 +8,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from pydantic import BaseModel, create_model, Field
 from agents_forge.agents_generation.config_schema import AgentConfig
 
-async def generate_agent_from_config(config_from_ai: AgentConfig):
+def generate_agent_from_config(config_from_ai: AgentConfig):
     """
     Generate an agent from a JSON configuration file.
     
@@ -41,7 +41,7 @@ async def generate_agent_from_config(config_from_ai: AgentConfig):
         
         # Use the entire node_config as the config for the create_node function
         # The specific node creation functions will extract what they need
-        node_function = await create_node(node_type, node_config)
+        node_function = create_node(node_type, node_config)
         
         # Add the node to the graph
         workflow.add_node(node_id, node_function)
