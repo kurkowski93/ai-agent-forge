@@ -299,92 +299,85 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-      <header className="py-8 px-6 bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <header className="py-6 px-6 bg-slate-800 text-white shadow-md">
         <div className="container mx-auto">
-          <h1 className="text-4xl font-extrabold tracking-tight">AgentForge</h1>
-          <p className="text-lg text-blue-100 mt-2">Build and interact with your AI agents</p>
+          <h1 className="text-3xl font-bold">AgentForge</h1>
+          <p className="text-sm text-slate-300 mt-1">Build and interact with your AI agents</p>
         </div>
       </header>
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Left column - Core Agent */}
-          <div className="flex-1 flex flex-col">
-            <div className="mb-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800">Core Agent</h2>
-              {coreState?.has_agent_config && (
-                <button
-                  className="px-5 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 
-                  transition shadow-md font-medium flex items-center gap-2"
-                  onClick={handleGenerateAgent}
-                  disabled={coreLoading || hasGeneratedAgent}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-                  </svg>
-                  Generate Agent
-                </button>
-              )}
+      <main className="container mx-auto px-4 py-6">
+        {/* Core Agent Section */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">Core Agent</h2>
+            {coreState?.has_agent_config && (
+              <button
+                className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 
+                transition shadow-sm font-medium flex items-center gap-2"
+                onClick={handleGenerateAgent}
+                disabled={coreLoading || hasGeneratedAgent}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                </svg>
+                Generate Agent
+              </button>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-1">
+              <ChatInterface
+                title="Core Agent Chat"
+                messages={coreMessages}
+                onSendMessage={handleSendToCore}
+                loading={coreLoading}
+              />
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Chat Interface */}
-              <div className="h-[600px] col-span-1">
+            <div className="col-span-1">
+              <AgentSteps 
+                steps={coreSteps} 
+                currentStep={currentCoreStep}
+                status={coreStatus}
+              />
+            </div>
+            
+            <div className="col-span-1">
+              <AgentState state={coreState} />
+            </div>
+          </div>
+        </div>
+        
+        {/* Generated Agent Section - Conditionally rendered */}
+        {hasGeneratedAgent && (
+          <div className="mt-8">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Generated Agent</h2>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-1">
                 <ChatInterface
-                  title="Core Agent Chat"
-                  messages={coreMessages}
-                  onSendMessage={handleSendToCore}
-                  loading={coreLoading}
+                  title="Generated Agent Chat"
+                  messages={generatedAgentMessages}
+                  onSendMessage={handleSendToGeneratedAgent}
+                  loading={generatedAgentLoading}
                 />
               </div>
               
-              {/* Agent State */}
-              <div className="h-[600px] col-span-1">
-                <AgentState state={coreState} />
-              </div>
-              
-              {/* Agent Steps */}
-              <div className="h-[600px] col-span-1">
+              <div className="col-span-1">
                 <AgentSteps 
-                  steps={coreSteps} 
-                  currentStep={currentCoreStep}
-                  status={coreStatus}
+                  steps={generatedAgentSteps} 
+                  currentStep={currentGeneratedAgentStep}
+                  status={generatedAgentStatus}
                 />
               </div>
             </div>
           </div>
-          
-          {/* Right column - Generated Agent (conditionally rendered) */}
-          {hasGeneratedAgent && (
-            <div className="flex-1 flex flex-col">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Generated Agent</h2>
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Chat Interface */}
-                <div className="h-[600px]">
-                  <ChatInterface
-                    title="Generated Agent Chat"
-                    messages={generatedAgentMessages}
-                    onSendMessage={handleSendToGeneratedAgent}
-                    loading={generatedAgentLoading}
-                  />
-                </div>
-                
-                {/* Agent Steps */}
-                <div className="h-[600px]">
-                  <AgentSteps 
-                    steps={generatedAgentSteps} 
-                    currentStep={currentGeneratedAgentStep}
-                    status={generatedAgentStatus}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </main>
     </div>
   );

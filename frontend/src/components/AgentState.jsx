@@ -14,53 +14,54 @@ const AgentState = ({ state }) => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full overflow-hidden flex flex-col">
-      <div className="px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-        <h3 className="text-xl font-bold tracking-wide">Agent State</h3>
+    <div className="bg-white rounded-lg shadow-md h-[500px] overflow-auto">
+      <div className="p-4 bg-slate-800 text-white rounded-t-lg">
+        <h3 className="text-lg font-semibold">Agent State</h3>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-6">
-        {/* Agent Blueprint */}
-        <div className="mb-6">
-          <h4 className="text-lg font-semibold text-gray-800 mb-3">Blueprint:</h4>
-          <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 whitespace-pre-wrap overflow-x-auto shadow-sm">
-            {state.agent_blueprint || "No blueprint available"}
-          </div>
-        </div>
-        
-        {/* Planned Step */}
-        <div className="mb-6">
-          <h4 className="text-lg font-semibold text-gray-800 mb-3">Planned Step:</h4>
-          <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm font-mono text-gray-800">
-            {state.planned_step || "None"}
-          </div>
-        </div>
-        
-        {/* Config Status */}
-        <div className="mb-6">
-          <h4 className="text-lg font-semibold text-gray-800 mb-3">Agent Config:</h4>
-          <div className={`inline-flex items-center px-4 py-2 rounded-full ${
-            state.has_agent_config 
-              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
-              : 'bg-amber-100 text-amber-800 border border-amber-200'
-          }`}>
-            <div className={`w-3 h-3 rounded-full mr-2 ${
-              state.has_agent_config ? 'bg-emerald-500' : 'bg-amber-500'
-            }`}></div>
-            {state.has_agent_config ? "Ready" : "Not Ready"}
-          </div>
-        </div>
-        
-        {/* Agent Config JSON - new section */}
-        {state.has_agent_config && state.agent_config && (
-          <div className="mb-6">
-            <h4 className="text-lg font-semibold text-gray-800 mb-3">Config JSON:</h4>
-            <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm overflow-x-auto">
-              <pre className="text-xs text-gray-800 font-mono whitespace-pre-wrap">
-                {JSON.stringify(state.agent_config, null, 2)}
-              </pre>
-            </div>
-          </div>
+      <div className="p-4 overflow-auto flex-grow">
+        {!state ? (
+          <div className="text-gray-500 italic">No state available</div>
+        ) : (
+          <>
+            {state.planned_step && (
+              <div className="mb-4">
+                <h4 className="font-semibold text-gray-700 mb-2">Planned Step:</h4>
+                <div className="bg-slate-50 p-3 rounded-md border border-slate-200">
+                  <code className="text-sm whitespace-pre-wrap">{typeof state.planned_step === 'string' ? state.planned_step : JSON.stringify(state.planned_step, null, 2)}</code>
+                </div>
+              </div>
+            )}
+            
+            {state.agent_config && (
+              <div className="mb-4">
+                <div className="flex items-center mb-2">
+                  <h4 className="font-semibold text-gray-700">Agent Config:</h4>
+                  {state.has_agent_config && (
+                    <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Ready</span>
+                  )}
+                </div>
+                <div className="bg-slate-50 p-3 rounded-md border border-slate-200 max-h-64 overflow-auto">
+                  <code className="text-sm whitespace-pre-wrap">{JSON.stringify(state.agent_config, null, 2)}</code>
+                </div>
+              </div>
+            )}
+            
+            {state.agent_state && Object.keys(state.agent_state).filter(key => key !== 'planned_step' && key !== 'agent_config').length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-2">Config JSON:</h4>
+                <div className="bg-slate-50 p-3 rounded-md border border-slate-200 max-h-64 overflow-auto">
+                  <code className="text-sm whitespace-pre-wrap">{JSON.stringify(
+                    Object.fromEntries(
+                      Object.entries(state.agent_state).filter(([key]) => key !== 'planned_step' && key !== 'agent_config')
+                    ), 
+                    null, 
+                    2
+                  )}</code>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

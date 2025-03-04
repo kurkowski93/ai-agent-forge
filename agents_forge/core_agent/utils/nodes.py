@@ -13,15 +13,12 @@ async def step_planner(state: AgentCreatorState) -> AgentCreatorState:
 
     system_prompt = f"""
         You're expert agent creator. Based on current state of agent blueprint decide what is best next step to do: 
-        - update the blueprint with new informations
-        - ask followup question to user to clarify some details
-        - generate agent based on current blueprint (available only if blueprint is not empty)
+        - ask followup question to user to clarify some details (choose this if you're curious about any detail or need more information)
+        - update the blueprint with new informations (choose this if you think you should update something in the blueprint)
+        - generate agent based on current blueprint (choose this ONLY if you have all necessary information and the blueprint is already created)
         
-        Messages:
-        {state.messages}
-        
-        Agent blueprint:
-        {state.agent_blueprint}
+        Here's current state:
+        {state}
     """
     
     class PlannerResponse(BaseModel):
@@ -179,16 +176,12 @@ async def generate_agent(state: AgentCreatorState) -> AgentCreatorState:
         - Ensure the complete workflow addresses all requirements in the blueprint
         - Design for reliability by making each step's purpose and output clear
         
-        EXAMPLE STRUCTURE:
-        For a research agent:
-        1. web_search node to gather initial information
-        2. llm node to analyze and identify key points
-        3. web_search node to find supporting evidence
-        4. llm node to synthesize findings into a final output
         
-        Based on the blueprint below, create a complete agent configuration with appropriate nodes and edges:
-        
+        Based on the blueprint below:
         {state.agent_blueprint}
+        and messages history:
+        {state.messages}
+        create a complete agent configuration with appropriate nodes and edges:
     """
     
     from agents_forge.agents_generation.config_schema import AgentConfig, NodeConfig, EdgeConfig
