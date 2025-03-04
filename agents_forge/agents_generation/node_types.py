@@ -53,7 +53,7 @@ def create_llm_node(config: NodeConfig) -> Callable:
         logger.info(f"[{config.id}] received response from LLM")
         
         # Return updated state
-        return {"messages": response}
+        return {"messages": [AIMessage(content=response.content)]}
     
     return llm_node
 
@@ -99,7 +99,7 @@ def create_web_search_node(config: NodeConfig) -> Callable:
         response_message = AIMessage(content=f"Found the following information: {formatted_search_results}")
         
         # Return updated state with search results
-        return {"messages": response_message}
+        return {"messages": [response_message]}
     
     return web_search_node
 

@@ -138,13 +138,24 @@ def generate_agent(state: AgentCreatorState) -> AgentCreatorState:
         - temperature: 0.0-0.3 for factual/precise tasks, 0.4-0.7 for creative tasks
         
         EDGE CONFIGURATION:
-        Edges must create a linear path from START to END:
+        Edges define the flow between nodes, with these guidelines:
+        1. Every path must start from a "START" node and end at an "END" node
+        2. PARALLEL PATHS are allowed and encouraged when appropriate:
+           - One node can have multiple outgoing edges (e.g., node_A -> node_B, node_A -> node_C)
+           - Multiple nodes can connect to a single node (e.g., node_B -> node_D, node_C -> node_D)
+           - This creates parallel execution paths that can merge later
+        3. NO RECURSIVE PATHS or loops are allowed - edges must only move forward in the workflow
+        4. Every node must have at least one incoming and one outgoing edge (except if connected to START or END)
+        
+        Example of valid parallel path configuration:
         ```json
         [
-          ..."source": "START", "target": "first_node"...
-          ..."source": "first_node", "target": "second_node"..,
-          ...
-          "source": "last_node", "target": "END"
+          "source": "START", "target": "initial_node"
+          "source": "initial_node", "target": "path1_node"
+          "source": "initial_node", "target": "path2_node"
+          "source": "path1_node", "target": "merge_node"
+          "source": "path2_node", "target": "merge_node"
+          "source": "merge_node", "target": "END"
         ]
         ```
         
@@ -154,13 +165,16 @@ def generate_agent(state: AgentCreatorState) -> AgentCreatorState:
         - Make each node's objective specific and actionable
         - Ensure the complete workflow addresses all requirements in the blueprint
         - Design for reliability by making each step's purpose and output clear
+        - Use parallel paths when different operations can happen concurrently, then merge results
         
         EXAMPLE STRUCTURE:
         For a research agent:
         1. web_search node to gather initial information
-        2. llm node to analyze and identify key points
-        3. web_search node to find supporting evidence
-        4. llm node to synthesize findings into a final output
+        2. The workflow splits into two parallel paths:
+           - One path analyzes technical aspects
+           - Another path analyzes market implications
+        3. The paths merge at a synthesis node that combines both analyses
+        4. Final llm node prepares the complete report
         
         Based on the blueprint below, create a complete agent configuration with appropriate nodes and edges:
         

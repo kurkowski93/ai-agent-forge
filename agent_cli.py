@@ -112,24 +112,36 @@ def display_chunk_info(chunk, response_content=None):
     if chunk_type == "Message":
         # It's a message from the agent
         rprint(Panel(json.dumps(chunk_dict, indent=2, default=str), 
-                    title=f"Message Chunk", 
+                    title="Message Chunk", 
                     border_style="green"))
     else:
         # Special handling for planned_step if present
         if isinstance(chunk_dict, dict) and "planned_step" in chunk_dict:
             planned_step = chunk_dict.get("planned_step")
             if planned_step:
-                rprint(Panel(json.dumps({"planned_step": planned_step}, indent=2, default=str),
+                rprint(Panel(f"Next step: {planned_step}",
                             title="Next Step",
                             border_style="magenta"))
         
-        # Show all state updates
-        rprint(Panel(json.dumps(chunk_dict, indent=2, default=str), 
-                    title=f"State Update Chunk", 
-                    border_style="blue"))
+        # Show all state updates in a simplified way
+        try:
+            # Format for better readability
+            formatted_json = json.dumps(chunk_dict, indent=2, default=str)
+            rprint(Panel(formatted_json, 
+                        title="State Update", 
+                        border_style="blue"))
+        except Exception as e:
+            rprint(f"Error displaying chunk info: {safe_format(str(e))}")
     
     # Return the updated response content if we're tracking it
     return response_content
+
+def safe_format(text):
+    """Escape any format specifiers in the text to safely use in f-strings."""
+    if not text:
+        return text
+    # Replace any potential format specifiers
+    return str(text).replace("{", "{{").replace("}", "}}")
 
 def display_image_in_terminal(image_path):
     """Display an image in the terminal if possible."""
@@ -148,13 +160,8 @@ def display_agent_graph(agent):
     graph_path = "temp_graph.png"
     
     try:
-        # Try different approaches based on agent type
-        if hasattr(agent, 'save_graph'):
-            # Original approach
-            agent.save_graph(graph_path)
-            rprint(f"[bold blue]📊 Agent graph saved to {graph_path}[/bold blue]")
-        elif hasattr(agent, 'get_graph'):
-            # Use get_graph().draw_mermaid_png() as seen in test_agent.ipynb
+        # Zawsze najpierw próbuj użyć metody get_graph().draw_mermaid_png()
+        if hasattr(agent, 'get_graph'):
             graph = agent.get_graph()
             if hasattr(graph, 'draw_mermaid_png'):
                 with open(graph_path, 'wb') as f:
@@ -162,7 +169,17 @@ def display_agent_graph(agent):
                 rprint(f"[bold blue]📊 Agent graph saved to {graph_path}[/bold blue]")
             else:
                 rprint(f"[bold yellow]⚠️ Agent graph object doesn't support draw_mermaid_png[/bold yellow]")
-                return False
+                # Fallback do starej metody
+                if hasattr(agent, 'save_graph'):
+                    agent.save_graph(graph_path)
+                    rprint(f"[bold blue]📊 Agent graph saved to {graph_path} using fallback method[/bold blue]")
+                else:
+                    rprint(f"[bold yellow]⚠️ This agent type ({type(agent).__name__}) doesn't support graph visualization[/bold yellow]")
+                    return False
+        # Jeśli agent nie ma metody get_graph, spróbuj użyć save_graph jako fallback
+        elif hasattr(agent, 'save_graph'):
+            agent.save_graph(graph_path)
+            rprint(f"[bold blue]📊 Agent graph saved to {graph_path} using fallback method[/bold blue]")
         else:
             rprint(f"[bold yellow]⚠️ This agent type ({type(agent).__name__}) doesn't support graph visualization[/bold yellow]")
             return False
@@ -202,10 +219,10 @@ def save_agent_config(config: Any, filename: str = "agent_config.json"):
     file_path = AGENTS_DIR / filename
     
     try:
-        # Convert config to JSON and save to file
-        config_json = config.model_dump_json()
+        # Convert config to JSON and save to file with pretty formatting
+        config_dict = config.model_dump()
         with open(file_path, 'w') as f:
-            f.write(config_json)
+            json.dump(config_dict, f, indent=4)
         
         rprint(f"[bold green]✅ Agent configuration saved to {file_path}[/bold green]")
         return file_path
@@ -278,6 +295,113 @@ async def load_agent_from_file(filename: str):
         rprint(f"[bold red]❌ Error loading agent: {e}[/bold red]")
         return None
 
+def extract_message_content(chunk):
+    """Extract actual message content from a streaming chunk."""
+    # If it's a direct message chunk
+    if hasattr(chunk, "content") and chunk.content:
+        return chunk.content
+    
+    # Handle AIMessage objects directly
+    if hasattr(chunk, "__class__") and chunk.__class__.__name__ == "AIMessage":
+        if hasattr(chunk, "content"):
+            return chunk.content
+    
+    # If it's a node output with messages
+    if isinstance(chunk, dict):
+        # Check if there are any message nodes
+        for node_name, node_data in chunk.items():
+            if isinstance(node_data, dict) and "messages" in node_data:
+                messages = node_data.get("messages", [])
+                if messages:
+                    # Get the last message's content
+                    last_message = messages[-1]
+                    
+                    # Handle AIMessage objects in messages array
+                    if hasattr(last_message, "__class__") and last_message.__class__.__name__ == "AIMessage":
+                        if hasattr(last_message, "content"):
+                            return last_message.content
+                    
+                    # Handle regular objects with content attribute
+                    if hasattr(last_message, "content") and last_message.content:
+                        return last_message.content
+                    
+                    # Process string message format: "content='actual message content' additional_kwargs={} ..."
+                    if isinstance(last_message, str) and "content=" in last_message:
+                        try:
+                            # Extract content between the first set of quotes after content=
+                            content_start = last_message.find("content='") + 9  # Length of "content='"
+                            if content_start > 9:  # Make sure "content='" was found
+                                content_end = last_message.find("'", content_start)
+                                if content_end > content_start:
+                                    return last_message[content_start:content_end]
+                            
+                            # Try double quotes if single quotes didn't work
+                            content_start = last_message.find('content="') + 9
+                            if content_start > 9:
+                                content_end = last_message.find('"', content_start)
+                                if content_end > content_start:
+                                    return last_message[content_start:content_end]
+                        except:
+                            pass
+    
+    # For other types of chunks, try to extract from common patterns
+    chunk_str = str(chunk)
+    if "content='" in chunk_str:
+        try:
+            # Extract content from a string like: content='message content here'
+            content_start = chunk_str.find("content='") + 9
+            if content_start > 9:
+                content_end = chunk_str.find("'", content_start)
+                if content_end > content_start:
+                    return chunk_str[content_start:content_end]
+        except:
+            pass
+    
+    return None
+
+def should_display_content(chunk):
+    """Determine if a chunk contains message content that should be displayed."""
+    # If it's a message chunk directly
+    if hasattr(chunk, "content") and chunk.content:
+        return True
+    
+    # Check if it's a node chunk with messages
+    if isinstance(chunk, dict):
+        for node_name, node_data in chunk.items():
+            if isinstance(node_data, dict) and "messages" in node_data:
+                return True
+    
+    return False
+
+def get_displayable_content(chunk):
+    """Extract only the human-readable content from a chunk, skipping technical details."""
+    try:
+        # Handle AIMessage objects directly
+        if hasattr(chunk, "__class__") and chunk.__class__.__name__ == "AIMessage":
+            if hasattr(chunk, "content"):
+                return f"[yellow]---CHUNK DIVIDER---[/yellow]\n[green]{safe_format(chunk.content)}[/green]"
+            return None
+        
+        # Handle other types of content
+        content = extract_message_content(chunk)
+        if content:
+            # Handle special case for "Next step: X" messages
+            if isinstance(content, str) and content.startswith("Next step:"):
+                next_step = content.split(":", 1)[1].strip() if ":" in content else "unknown"
+                # Return formatted string for next step
+                return f"[yellow]---CHUNK DIVIDER---[/yellow]\n[bold magenta]Next step:[/bold magenta] {safe_format(next_step)}"
+            
+            # Regular messages
+            return f"[yellow]---CHUNK DIVIDER---[/yellow]\n[green]{safe_format(content)}[/green]"
+        
+        # For the specific case where chunk has "planned_step" directly
+        if hasattr(chunk, "planned_step") and chunk.planned_step:
+            return f"[yellow]---CHUNK DIVIDER---[/yellow]\n[bold magenta]Next step:[/bold magenta] {safe_format(str(chunk.planned_step))}"
+    except Exception as e:
+        return f"[yellow]Error formatting content: {safe_format(str(e))}[/yellow]"
+    
+    return None
+
 async def chat_with_core_agent():
     """Start a conversation with the core agent."""
     # Initialize the core agent
@@ -293,7 +417,8 @@ async def chat_with_core_agent():
         "[bold]Chat with Core Agent[/bold]\n\n"
         "Type your messages to interact with the agent.\n"
         "Type [bold cyan]'exit'[/bold cyan] to end the conversation.\n"
-        "Type [bold cyan]'generate'[/bold cyan] to generate a custom agent based on the conversation.",
+        "Type [bold cyan]'save_config'[/bold cyan] to save a custom agent with your own name and immediately test it.\n"
+        "Type [bold cyan]'graph'[/bold cyan] to display the agent's graph visualization.",
         title="📝 Instructions",
         border_style="blue"
     ))
@@ -306,62 +431,48 @@ async def chat_with_core_agent():
             rprint("[bold yellow]👋 Exiting conversation.[/bold yellow]")
             break
         
+        # Handle graph command
+        if user_input.lower() == "graph":
+            display_agent_graph(agent)
+            continue
+        
         # Add user message to the list
         messages.append(HumanMessage(content=user_input))
         
-        # Handle 'generate' command
-        if user_input.lower() == "generate":
+        # Handle 'save_config' command
+        if user_input.lower() == "save_config":
             try:
                 # Check if agent_config exists in the state
                 state_snapshot = agent.get_state(config)
                 agent_config = state_snapshot.values.get('agent_config')
                 
                 if agent_config:
+                    # Always ask for custom name first
+                    custom_name = Prompt.ask("[bold blue]Enter a name for this agent[/bold blue]")
+                    
                     # Save the configuration with a clear status
-                    with console.status("[bold green]🔄 Save agent...[/bold green]") as status:
-                        save_agent_config(agent_config)
+                    with console.status("[bold green]🔄 Saving agent with custom name...[/bold green]") as status:
+                        save_agent_config(agent_config, custom_name)
                     
                     # Display agent information
                     rprint(Panel.fit(
-                        f"[bold green]✅ Agent generated successfully![/bold green]\n\n"
+                        f"[bold green]✅ Agent saved successfully![/bold green]\n\n"
                         f"[bold]Agent Name:[/bold] {agent_config.agent_name}\n"
                         f"[bold]Description:[/bold] {agent_config.description}\n\n"
-                        "You can now test this agent using the 'test' command.",
-                        title="🎉 Agent Generated",
+                        "Starting agent testing now...",
+                        title="🎉 Agent Saved",
                         border_style="green"
                     ))
                     
-                    # Give user clear options after generating the agent
-                    rprint(Panel.fit(
-                        "What would you like to do next?\n\n"
-                        "1. [bold cyan]Save with custom name[/bold cyan]\n"
-                        "2. [bold cyan]Test this agent[/bold cyan]\n"
-                        "3. [bold cyan]Continue conversation[/bold cyan]\n"
-                        "4. [bold cyan]Exit[/bold cyan]",
-                        title="📋 Next Steps",
-                        border_style="blue"
-                    ))
+                    # Generate and test the agent immediately
+                    new_agent = generate_agent_from_config(agent_config)
+                    display_agent_graph(new_agent)
+                    await test_agent(new_agent)
                     
-                    choice = Prompt.ask("[bold blue]Enter your choice[/bold blue]", choices=["1", "2", "3", "4"])
-                    
-                    if choice == "1":
-                        custom_name = Prompt.ask("[bold blue]Enter a name for this agent[/bold blue]")
-                        with console.status("[bold green]🔄 Save agent with custom name...[/bold green]"):
-                            save_agent_config(agent_config, custom_name)
-                    
-                    if choice == "1" or choice == "2":
-                        new_agent = generate_agent_from_config(agent_config)
-                        display_agent_graph(new_agent)
-                        if choice == "2":
-                            await test_agent(new_agent)
-                            # After testing, return to main menu or exit
-                            if Confirm.ask("[bold yellow]Return to core agent conversation?[/bold yellow]"):
-                                continue
-                            else:
-                                break
-                    
-                    if choice == "4":
-                        rprint("[bold yellow]👋 Exiting conversation.[/bold yellow]")
+                    # After testing, ask if they want to return to conversation
+                    if Confirm.ask("[bold yellow]Return to core agent conversation?[/bold yellow]"):
+                        continue
+                    else:
                         break
             except Exception as e:
                 rprint(f"[bold red]❌ Error generating agent: {e}[/bold red]")
@@ -375,54 +486,75 @@ async def chat_with_core_agent():
                 chunk_count = 0
                 
                 # Initial message to indicate agent is responding
-                rprint("[bold green]Agent (streaming):[/bold green]")
+                rprint("[bold green]Agent:[/bold green]")
                 
                 # Stream the response
-                for chunk in agent.stream(
-                    {"messages": messages}, 
-                    config,
-                    stream_mode="updates"
-                ):
-                    try:
-                        chunk_count += 1
-                        
-                        # Add separator between chunks
-                        if chunk_count > 1:
-                            rprint("[dim]---[/dim]")
-                        
-                        # Format and print the chunk
-                        formatted_chunk = format_chunk(chunk)
-                        rprint(formatted_chunk)
-                        
-                        # Still collect content for message history if it's a message
-                        if hasattr(chunk, "content") and chunk.content:
-                            response_content += chunk.content
-                    except Exception as e:
-                        rprint(f"[bold red]❌ Error processing chunk: {e}[/bold red]")
+                final_message = None
+                try:
+                    for chunk in agent.stream(
+                        {"messages": messages}, 
+                        config,
+                        stream_mode="updates"
+                    ):
+                        try:
+                            chunk_count += 1
+                            
+                            # Obsługa bezpośrednich obiektów AIMessage z innym wzorcem
+                            if hasattr(chunk, "__class__") and chunk.__class__.__name__ == "AIMessage":
+                                if hasattr(chunk, "content"):
+                                    # Bezpośrednio wyświetl zawartość AIMessage
+                                    rprint(f"[yellow]---CHUNK DIVIDER---[/yellow]\n[green]{safe_format(chunk.content)}[/green]")
+                                    # Zapisz do final_message
+                                    final_message = chunk.content
+                                    # Dodaj do całkowitej zawartości odpowiedzi
+                                    response_content += chunk.content
+                                    continue
+                            
+                            # Standardowa obsługa dla innych typów chunków    
+                            # Get content for display
+                            display_content = get_displayable_content(chunk)
+                            if display_content:
+                                # Use rprint instead of print to properly render Rich formatting tags
+                                rprint(display_content)
+                            
+                            # Extract message content from the chunk for final message
+                            message_content = extract_message_content(chunk)
+                            if message_content:
+                                final_message = message_content
+                            
+                            # Still collect content for message history if it's a message
+                            if hasattr(chunk, "content") and chunk.content:
+                                response_content += chunk.content
+                        except Exception as e:
+                            rprint(f"[red]Error processing chunk: {safe_format(str(e))}[/red]")
+                except Exception as e:
+                    rprint(f"[red]Error during streaming: {safe_format(str(e))}[/red]")
                 
                 # Final message to indicate streaming is complete
                 if chunk_count > 0:
-                    rprint("\n--- END OF STREAMING ---\n")
+                    rprint("\n[dim]--- END OF STREAMING ---[/dim]\n")
+                
+                # No streaming chunks received at all
+                if chunk_count == 0:
+                    rprint("[bold yellow]⚠️ No streaming response received.")
                 
                 # Save to message history if we got actual content
-                if chunk_count > 0:
-                    # If we have text content, add it to messages
-                    if response_content:
-                        ai_message = AIMessage(content=response_content)
-                        messages.append(ai_message)
-                else:
-                    # No streaming chunks received at all
-                    rprint("[bold yellow]⚠️ No streaming response received.[/bold yellow]")
-                    
+                if response_content:
+                    ai_message = AIMessage(content=response_content)
+                    messages.append(ai_message)
             except Exception as e:
-                rprint(f"[bold red]❌ Error getting agent response: {e}[/bold red]")
+                rprint(f"Error getting agent response: {str(e)}")
 
 async def test_agent(agent):
     """Test a generated or loaded agent."""
+    # Initialize list to store conversation history
+    messages = []
+    
     rprint(Panel.fit(
         "[bold]Test Agent[/bold]\n\n"
         "Type your messages to interact with the agent.\n"
-        "Type [bold cyan]'exit'[/bold cyan] to end the test.",
+        "Type [bold cyan]'exit'[/bold cyan] to end the test.\n"
+        "Type [bold cyan]'graph'[/bold cyan] to display the agent's graph visualization.",
         title="📝 Instructions",
         border_style="blue"
     ))
@@ -435,8 +567,15 @@ async def test_agent(agent):
             rprint("[bold yellow]👋 Exiting test.[/bold yellow]")
             break
         
+        # Handle graph command
+        if user_input.lower() == "graph":
+            display_agent_graph(agent)
+            continue
+        
         # Create message
         user_message = HumanMessage(content=user_input)
+        # Add to history
+        messages.append(user_message)
         
         # Process the message with streaming
         rprint("[bold green]🤖 Agent is thinking...[/bold green]")
@@ -447,40 +586,64 @@ async def test_agent(agent):
             chunk_count = 0
             
             # Initial message to indicate agent is responding
-            rprint("[bold green]Agent (streaming):[/bold green]")
+            rprint("[bold green]Agent:[/bold green]")
             
             # Stream the response
-            for chunk in agent.stream(
-                {"messages": [user_message]},
-                stream_mode="updates"
-            ):
-                try:
-                    chunk_count += 1
-                    
-                    # Add separator between chunks
-                    if chunk_count > 1:
-                        rprint("[dim]---[/dim]")
-                    
-                    # Format and print the chunk
-                    formatted_chunk = format_chunk(chunk)
-                    rprint(formatted_chunk)
-                    
-                    # Still collect content for message history if it's a message
-                    if hasattr(chunk, "content") and chunk.content:
-                        response_content += chunk.content
-                except Exception as e:
-                    rprint(f"[bold red]❌ Error processing chunk: {e}[/bold red]")
+            final_message = None
+            try:
+                # Use full message history instead of just the last message
+                for chunk in agent.stream(
+                    {"messages": messages},
+                    stream_mode="updates"
+                ):
+                    try:
+                        chunk_count += 1
+                        
+                        # Obsługa bezpośrednich obiektów AIMessage z innym wzorcem
+                        if hasattr(chunk, "__class__") and chunk.__class__.__name__ == "AIMessage":
+                            if hasattr(chunk, "content"):
+                                # Bezpośrednio wyświetl zawartość AIMessage
+                                rprint(f"[yellow]---CHUNK DIVIDER---[/yellow]\n[green]{safe_format(chunk.content)}[/green]")
+                                # Zapisz do final_message
+                                final_message = chunk.content
+                                # Dodaj do całkowitej zawartości odpowiedzi
+                                response_content += chunk.content
+                                continue
+                        
+                        # Standardowa obsługa dla innych typów chunków    
+                        # Get content for display
+                        display_content = get_displayable_content(chunk)
+                        if display_content:
+                            # Use rprint instead of print to properly render Rich formatting tags
+                            rprint(display_content)
+                        
+                        # Extract message content from the chunk for final message
+                        message_content = extract_message_content(chunk)
+                        if message_content:
+                            final_message = message_content
+                        
+                        # Still collect content for message history if it's a message
+                        if hasattr(chunk, "content") and chunk.content:
+                            response_content += chunk.content
+                    except Exception as e:
+                        rprint(f"[red]Error processing chunk: {safe_format(str(e))}[/red]")
+            except Exception as e:
+                rprint(f"[red]Error during streaming: {safe_format(str(e))}[/red]")
             
             # Final message to indicate streaming is complete
             if chunk_count > 0:
-                rprint("\n--- END OF STREAMING ---\n")
+                rprint("\n[dim]--- END OF STREAMING ---[/dim]\n")
             
             # No streaming chunks received at all
             if chunk_count == 0:
-                rprint("[bold yellow]⚠️ No streaming response received.[/bold yellow]")
-                    
+                rprint("[bold yellow]⚠️ No streaming response received.")
+            
+            # Save to message history if we got actual content
+            if response_content:
+                ai_message = AIMessage(content=response_content)
+                messages.append(ai_message)
         except Exception as e:
-            rprint(f"[bold red]❌ Error getting agent response: {e}[/bold red]")
+            rprint(f"Error getting agent response: {str(e)}")
 
 async def test_saved_agent():
     """Load and test a saved agent."""
@@ -533,60 +696,50 @@ def format_chunk(chunk):
         if isinstance(chunk, dict):
             # Dictionary format for normal agent output
             if node_name:
-                return f"[bold yellow]Node: {node_name}[/bold yellow]\n{json.dumps(chunk[node_name], indent=2, default=str)}"
+                return f"[bold yellow]Node: {safe_format(node_name)}[/bold yellow]\n{json.dumps(chunk[node_name], indent=2, default=str)}"
             else:
                 return json.dumps(chunk, indent=2, default=str)
         elif hasattr(chunk, "content") and chunk.content:
             # Simple message chunk
-            return f"[green]Message: {chunk.content}[/green]"
+            return f"[green]Message: {safe_format(chunk.content)}[/green]"
         else:
             # Try to identify if it's a core agent or custom agent
             if hasattr(chunk, "planned_step") or (hasattr(chunk, "__dict__") and any(isinstance(k, Enum) for k in chunk.__dict__)):
                 # Core agent with schema output
-                chunk_data = str(chunk)
-                # Try to extract node name
-                if "{'" in chunk_data and "': {" in chunk_data:
-                    parts = chunk_data.split("{'" , 1)
-                    if len(parts) > 1:
-                        node_parts = parts[1].split("': {", 1)
-                        if len(node_parts) > 1:
-                            node_name = node_parts[0]
-                            chunk_data = f"[bold yellow]Node: {node_name}[/bold yellow]\n{chunk_data}"
+                chunk_data = safe_format(str(chunk))
                 
-                # Improve readability of planned_step
+                # Simplify formatting to improve compatibility with different terminals
                 if "planned_step" in chunk_data:
-                    chunk_data = chunk_data.replace("<NextStep.", "[bold magenta]").replace(">", "[/bold magenta]")
-                # Highlight messages
+                    chunk_data = chunk_data.replace("NextStep.", "NEXT STEP: ")
+                
                 if "messages" in chunk_data:
-                    chunk_data = chunk_data.replace("AIMessage(content=", "[cyan]AIMessage: [/cyan]")
-                    chunk_data = chunk_data.replace("HumanMessage(content=", "[blue]HumanMessage: [/blue]")
+                    chunk_data = chunk_data.replace("AIMessage(content=", "AI: ")
+                    chunk_data = chunk_data.replace("HumanMessage(content=", "Human: ")
                 
                 return chunk_data
             else:
                 # Default fallback
-                return str(chunk)
+                return safe_format(str(chunk))
     except Exception as e:
         # W przypadku jakiegokolwiek błędu, po prostu zwróć surowy string
-        return f"[yellow]Raw chunk data:[/yellow] {str(chunk)}"
+        return f"Raw chunk data: {safe_format(str(chunk))}"
 
 def main():
     """Run the main application."""
-    # Print welcome message
-    console.print(Panel.fit(
-        "[bold]Agent CLI[/bold]\n\n"
-        "A command-line interface for working with AI agents.\n\n"
-        "Run [bold cyan]agent_cli.py chat[/bold cyan] to start a conversation with the core agent.\n"
-        "Run [bold cyan]agent_cli.py test[/bold cyan] to test a saved agent.\n"
-        "Run [bold cyan]agent_cli.py list[/bold cyan] to list all saved agents.",
-        title="🤖 Welcome to Agent CLI",
-        border_style="green"
-    ))
+    # Print welcome message with simpler formatting
+    console.print("\n=== Agent CLI ===\n")
+    console.print("A command-line interface for working with AI agents.\n")
+    console.print("Commands:")
+    console.print("- agent_cli.py chat : Start a conversation with the core agent")
+    console.print("- agent_cli.py test : Test a saved agent")
+    console.print("- agent_cli.py list : List all saved agents")
+    console.print("\n" + "=" * 50 + "\n")
     
     setup()
     try:
         app()
     except Exception as e:
-        rprint(f"[bold red]❌ Error: {e}[/bold red]")
+        rprint(f"Error: {safe_format(str(e))}")
 
 if __name__ == "__main__":
     main() 
