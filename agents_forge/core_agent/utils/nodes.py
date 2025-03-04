@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 
-async def step_planner(state: AgentCreatorState) -> AgentCreatorState:
+def step_planner(state: AgentCreatorState) -> AgentCreatorState:
     """Plan the next step in agent creation based on user input and current state."""
     logger.info(f"Executing step_planner with blueprint: {state.agent_blueprint}")
     
@@ -37,16 +37,16 @@ Respond with the next step.
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1).with_structured_output(PlannerResponse)
     
     # Create a combined message list with system prompt
-    response = await llm.ainvoke([system_prompt])
+    response = llm.invoke([system_prompt])
     logger.info(f"LLM responded with next step: {response.next_step}")
     
-    return { "planned_step": response.next_step}
+    return { "planned_step": response.next_step, "messages": [AIMessage(content="Next step: " + response.next_step)] }
 
 def route_to_step(state: AgentCreatorState) -> AgentCreatorState:
     logger.info(f"Routing to step: {state.planned_step}")
     return state.planned_step
     
-async def update_blueprint(state: AgentCreatorState) -> AgentCreatorState:
+def update_blueprint(state: AgentCreatorState) -> AgentCreatorState:
     """Update the agent blueprint based on user feedback."""
     logger.info("Executing update_blueprint")
     
@@ -68,12 +68,12 @@ Current blueprint: {state.agent_blueprint if state.agent_blueprint else "No blue
     
     logger.info("Querying LLM for blueprint update")
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
-    response = await llm.ainvoke(system_prompt + limited_messages)
+    response = llm.invoke(system_prompt + limited_messages)
     logger.info("LLM responded with updated blueprint")
     
-    return { "agent_blueprint": response.content }
+    return { "agent_blueprint": response.content, "messages": [AIMessage(content="Updated blueprint: " + response.content)] }
 
-async def ask_followup(state: AgentCreatorState) -> AgentCreatorState:
+def ask_followup(state: AgentCreatorState) -> AgentCreatorState:
     """Ask a followup question to gather more information from the user."""
     logger.info("Executing ask_followup")
     
@@ -98,12 +98,12 @@ Ask only the most important questions needed right now. Be concise but friendly.
     
     logger.info("Querying LLM for followup question")
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
-    response = await llm.ainvoke(system_prompt + state.messages)
+    response = llm.invoke(system_prompt + state.messages)
     logger.info("LLM responded with followup question")
     
-    return { "message": response.content }
+    return { "messages": [AIMessage(content="Followup question: " + response.content)] }
 
-async def generate_agent(state: AgentCreatorState) -> AgentCreatorState:
+def generate_agent(state: AgentCreatorState) -> AgentCreatorState:
     """Generate an agent configuration based on the blueprint."""
     logger.info(f"Executing generate_agent with blueprint: {state.agent_blueprint}")
     
@@ -117,13 +117,12 @@ A good agent configuration should:
 - Include appropriate safeguards and error handling
 
 The agent configuration must follow this structure:
-- name: A descriptive name for the agent
+- agent_name: A descriptive name for the agent
 - description: A detailed description of what the agent does
-- system_message: The system prompt that defines the agent's behavior
 - nodes: A list of processing nodes that make up the agent's workflow
-   - Each node must have an id, type, and required parameters
+   - Each node must have an id, type, objective, model_name, and temperature
    - Use nodes to break complex tasks into manageable steps
-   - The agent can only use two types of nodes: "llm" (for language model interactions) and "web_search" (for internet searches)
+- edges: A list of edges connecting the nodes, each with source and target node IDs
 
 Blueprint:
 {state.agent_blueprint}
@@ -135,7 +134,7 @@ Return a complete, valid agent configuration in JSON format.
     logger.info("Querying LLM for agent generation")
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1).with_structured_output(AgentConfig)
     
-    config = await llm.ainvoke([system_prompt])
-    logger.info(f"LLM responded with agent configuration: {config.name}")
+    config = llm.invoke([system_prompt])
+    logger.info(f"LLM responded with agent configuration: {config.agent_name}")
     
-    return { "agent_config": config }
+    return { "agent_config": config , "messages": [AIMessage(content="Generated agent configuration: " + config.agent_name)]}
