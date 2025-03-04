@@ -6,6 +6,14 @@ from agents_forge.agents_generation.state import AgentsGenerationState
 from agents_forge.agents_generation.config_schema import NodeConfig
 from pydantic import BaseModel, Field
 from langchain_community.tools.tavily_search import TavilySearchResults
+import json
+import logging
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Limit messages to last N
+MAX_MESSAGES = 4
 
 class NodeType(str, Enum):
     """Predefined node types for the AgentForge system."""
@@ -29,10 +37,20 @@ async def create_llm_node(config: NodeConfig) -> Callable:
     async def llm_node(state: AgentsGenerationState) -> AgentsGenerationState:
         llm = ChatOpenAI(model=model_name, temperature=temperature)
         
-        print(f"[{config.id}] querying LLM with prompt: {system_prompt} + {state['messages'][-1].content}")
-
-        # Get response
-        response = await llm.ainvoke([SystemMessage(content=system_prompt)] + state["messages"])
+        logger.info(f"[{config.id}] querying LLM with {len(state['messages'])} messages")
+        if state['messages']:
+            logger.info(f"[{config.id}] last message: {state['messages'][-1].content[:100]}...")
+        
+        # Limit messages to last MAX_MESSAGES
+        limited_messages = state['messages'][-MAX_MESSAGES:] if len(state['messages']) > MAX_MESSAGES else state['messages']
+        
+        # Add system prompt if provided
+        messages_with_system = [SystemMessage(content=system_prompt)] + limited_messages if system_prompt else limited_messages
+        
+        # Call LLM
+        logger.info(f"[{config.id}] sending request to model {model_name}")
+        response = await llm.ainvoke(messages_with_system)
+        logger.info(f"[{config.id}] received response from LLM")
         
         # Return updated state
         return {"messages": response}
@@ -64,7 +82,7 @@ async def create_web_search_node(config: NodeConfig) -> Callable:
 
         search_query = await structured_llm.ainvoke([search_instructions]+state['messages'])
         
-        print(f"[{config.id}] performing web search with query: {search_query}")
+        logger.info(f"[{config.id}] performing web search with query: {search_query}")
          # Search
         tavily_search = TavilySearchResults(max_results=3)
         
@@ -101,9 +119,12 @@ async def create_node(node_type: str, config: Dict[str, Any]) -> Callable:
         ValueError: If the node type is not recognized
     """
     
+    logger.info(f"Creating node: {config.id} of type {config.type}")
+    
     if node_type == NodeType.LLM:
         return await create_llm_node(config)
     elif node_type == NodeType.WEB_SEARCH:
         return await create_web_search_node(config)
     else:
+        logger.error(f"Unknown node type: {node_type}")
         raise ValueError(f"Unknown node type: {node_type}. Supported types: {[t.value for t in NodeType]}") 

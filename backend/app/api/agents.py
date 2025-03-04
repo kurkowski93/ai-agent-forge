@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Query, status
 from fastapi.responses import StreamingResponse
 from app.models.agents import ConversationRequest, ConversationResponse, GeneratedAgentResponse
 from app.services.agent_service import agent_service
@@ -19,7 +19,10 @@ async def send_message_to_core(request: ConversationRequest):
             state=result["state"]
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error communicating with core agent: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error communicating with core agent: {str(e)}"
+        )
 
 
 @router.get("/core/message/stream")
@@ -33,7 +36,10 @@ async def stream_message_to_core(message: str = Query(..., description="Message 
             media_type="text/event-stream"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error streaming from core agent: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error streaming from core agent: {str(e)}"
+        )
 
 
 @router.post("/core/generate", response_model=GeneratedAgentResponse)
@@ -44,7 +50,10 @@ async def generate_agent(background_tasks: BackgroundTasks):
     try:
         result = await agent_service.generate_agent_from_core()
         if "error" in result:
-            raise HTTPException(status_code=400, detail=result["error"])
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=result["error"]
+            )
         return GeneratedAgentResponse(
             agent_id=result["agent_id"],
             message=result["message"]
@@ -52,7 +61,10 @@ async def generate_agent(background_tasks: BackgroundTasks):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating agent: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error generating agent: {str(e)}"
+        )
 
 
 @router.get("/core/generate/stream")
@@ -66,7 +78,10 @@ async def stream_generate_agent():
             media_type="text/event-stream"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error streaming agent generation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error streaming agent generation: {str(e)}"
+        )
 
 
 @router.post("/{agent_id}/message", response_model=ConversationResponse)
@@ -77,7 +92,10 @@ async def send_message_to_agent(agent_id: str, request: ConversationRequest):
     try:
         result = await agent_service.send_message_to_agent(agent_id, request.message)
         if "error" in result:
-            raise HTTPException(status_code=404, detail=result["error"])
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail=result["error"]
+            )
         return ConversationResponse(
             message=result["message"],
             state=result["state"]
@@ -85,7 +103,10 @@ async def send_message_to_agent(agent_id: str, request: ConversationRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error communicating with agent: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error communicating with agent: {str(e)}"
+        )
 
 
 @router.get("/{agent_id}/message/stream")
@@ -102,7 +123,10 @@ async def stream_message_to_agent(
             media_type="text/event-stream"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error streaming from agent: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error streaming from agent: {str(e)}"
+        )
 
 
 @router.get("/initialize", response_model=Dict[str, bool])
@@ -115,4 +139,7 @@ async def initialize_core_agent(background_tasks: BackgroundTasks):
         background_tasks.add_task(agent_service.initialize_core_agent)
         return {"initializing": True}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error initializing core agent: {str(e)}") 
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error initializing core agent: {str(e)}"
+        ) 
