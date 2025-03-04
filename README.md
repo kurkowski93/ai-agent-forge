@@ -1,82 +1,77 @@
-# AgentForge
+# Chameleon AI Agent - Terminal Application
 
-An AI meta-agent system designed to autonomously create and optimize specialized AI agents based on user requirements and collected information.
+This is a terminal-based application for creating and interacting with AI agents. 
+The application uses LangChain and OpenAI to create customizable AI agents with specific capabilities and personalities.
 
-## 🌟 Overview
+## Features
 
-AgentForge is an ambitious project that aims to create a meta-agent capable of:
+- Generate custom AI agents through conversation
+- Chat with generated agents
+- Simple terminal-based interface
+- No web browser or frontend needed
 
-1. Understanding user needs and requirements for specialized AI agents
-2. Designing optimal agent architectures based on gathered information
-3. Automatically generating custom agents with appropriate behaviors
-4. Continuously refining and improving agent performance
+## Requirements
 
-The current implementation represents an initial proof of concept, demonstrating the foundational technology that will enable agent generation using a JSON-based configuration system. This serves as the core mechanism that the meta-agent will leverage to craft specialized agents.
+- Python 3.8+
+- OpenAI API Key
+- Required Python packages (see requirements.txt)
 
-## ✨ Current Features (PoC)
+## Installation
 
-- **JSON-based Agent Generation**: Create full-fledged LangGraph agents from configuration files
-- **Modular Architecture**: Easily define nodes of various types (LLM, web search, etc.)
-- **Configurable Graph**: Flexible workflow definition by connecting nodes with edges
-- **Web Interface**: React-based UI for interacting with agents
-- **FastAPI Backend**: Robust API for agent communication
-- **Extensibility**: Prepared for adding new node types and functionalities
+1. Clone this repository:
+```
+git clone https://github.com/yourusername/chameleon-ai-agent.git
+cd chameleon-ai-agent
+```
 
-## 🚀 Getting Started
+2. Create a virtual environment (recommended):
+```
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-### Prerequisites
+3. Install dependencies:
+```
+pip install -r requirements.txt
+```
 
-- Python 3.10+ 
-- Node.js 18+
-- An OpenAI API key (set in `.env` file)
+4. Create a `.env` file with your OpenAI API key:
+```
+OPENAI_API_KEY=your_api_key_here
+```
 
-### Installation
+## Usage
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd chameleon-ai-agent
-   ```
+Run the application with:
+```
+./run.sh
+```
 
-2. Set up the environment variables:
-   ```bash
-   cp example.env .env
-   # Edit .env to add your OpenAI API key
-   ```
+Or manually:
+```
+python terminal_app.py
+```
 
-3. Run the application:
-   ```bash
-   ./run.sh
-   ```
+### Application Flow
 
-   This will:
-   - Activate the Python virtual environment (if it exists)
-   - Install required dependencies
-   - Start the FastAPI backend server
-   - Start the React frontend development server
+1. **Generate Agent**: Create a custom AI agent by describing its purpose, personality, and capabilities.
+2. **Chat with Agent**: Interact with your generated agent.
 
-4. Open your browser and navigate to:
-   - Frontend: http://localhost:3000
-   - API Documentation: http://localhost:8000/docs
+## Configuration
 
-## 🛠️ How to Use
+Agent configurations are stored in the `configs` directory.
 
-1. **Chat with Core Agent**: Start by chatting with the core agent to describe what kind of agent you want to create
-2. **Generate Agent**: Once the agent configuration is ready (indicated in the Agent State panel), click the "Generate Agent" button
-3. **Interact with Generated Agent**: After generation, you can interact with your new agent in the right panel
+## Development
 
-## 🚀 Future Development Directions
+This application replaces the previous web-based frontend and FastAPI backend with a simpler terminal interface, while maintaining all core functionality.
 
-- Meta-agent that interprets client needs and generates optimal agent specifications
-- User interface for visually designing agents
-- Library of ready-made, specialized agent components
-- Ability to combine agents into more complex systems
-- Self-improving agents that learn from interactions
+### Directory Structure
 
-## ⚠️ Project Status
+- `backend/app/services`: Core service logic for agent generation and interaction
+- `backend/app/models`: Data models
+- `agents_forge`: Agent implementation files
+- `configs`: Stored agent configurations
 
-This project is currently in the Proof of Concept phase. The current code demonstrates the possibility of creating agents based on a JSON file, which forms the foundation for further development of the platform for building adaptive, specialized AI agents.
+## License
 
----
-
-*Created as part of the [AI Craftsman](https://kurkowski.substack.com) Weekly Challenge series.* 
+[MIT License]

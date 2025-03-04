@@ -19,17 +19,11 @@ if [ -z "$OPENAI_API_KEY" ]; then
   fi
 fi
 
-echo "Starting backend server..."
+echo "Starting terminal application..."
 echo "Using Python path: $PYTHONPATH"
-echo "Environment: $ENVIRONMENT"
 
-# Set log level to INFO for more detailed logging
-export LOG_LEVEL=INFO
+# Make the terminal_app.py executable if it's not already
+chmod +x terminal_app.py
 
-# Add timestamp to logs
-function timestamp() {
-  date +"%Y-%m-%d %H:%M:%S"
-}
-
-# Run the FastAPI application with increased log level
-cd backend && python -m app.main | while read line; do echo "[$(timestamp)] $line"; done 
+# Run the terminal application
+python terminal_app.py 

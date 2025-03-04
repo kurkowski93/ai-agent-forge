@@ -11,8 +11,7 @@ import logging
 # Configure logger
 logger = logging.getLogger(__name__)
 
-# Limit messages to last N
-MAX_MESSAGES = 6
+
 
 async def step_planner(state: AgentCreatorState) -> AgentCreatorState:
     """Plan the next step in agent creation based on user input and current state."""
@@ -26,7 +25,7 @@ You're expert agent creator. Based on current state of agent blueprint decide wh
 
 Blueprint: {state.agent_blueprint if state.agent_blueprint else "No blueprint yet"}
 
-Current user message: {state.messages[-MAX_MESSAGES].content if state.messages else "No messages yet"}
+Current user message: {state.messages}
 
 Respond with the next step.
 """)
@@ -65,7 +64,7 @@ Current blueprint: {state.agent_blueprint if state.agent_blueprint else "No blue
 """)]
     
     # Limit messages to last MAX_MESSAGES
-    limited_messages = state.messages[-MAX_MESSAGES:] if len(state.messages) > MAX_MESSAGES else state.messages
+    limited_messages = state.messages
     
     logger.info("Querying LLM for blueprint update")
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
@@ -95,12 +94,11 @@ solve the overall problem
 Ask only the most important questions needed right now. Be concise but friendly.
 """)]
     
-    # Limit messages to last MAX_MESSAGES
-    limited_messages = state.messages[-MAX_MESSAGES:] if len(state.messages) > MAX_MESSAGES else state.messages
+
     
     logger.info("Querying LLM for followup question")
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
-    response = await llm.ainvoke(system_prompt + limited_messages)
+    response = await llm.ainvoke(system_prompt + state.messages)
     logger.info("LLM responded with followup question")
     
     return { "message": response.content }
