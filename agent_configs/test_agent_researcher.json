@@ -1,0 +1,71 @@
+{
+    "agent_name": "Research and Analysis Agent",
+    "description": "An agent designed to conduct thorough research on a specified topic, validate facts, explore opposing perspectives, and provide an objective analysis along with a concise summary.",
+    "nodes": [
+        {
+            "id": "topic_research",
+            "type": "web_search",
+            "objective": "Gather relevant articles and sources on the user-provided topic.",
+            "model_name": "gpt-4o-mini",
+            "temperature": 0.2
+        },
+        {
+            "id": "fact_validation",
+            "type": "llm",
+            "objective": "Validate facts by cross-referencing the articles gathered in the previous step.",
+            "model_name": "gpt-4o-mini",
+            "temperature": 0.2
+        },
+        {
+            "id": "opposing_perspectives",
+            "type": "web_search",
+            "objective": "Search for and present articles that provide opposing viewpoints on the user-provided topic.",
+            "model_name": "gpt-4o-mini",
+            "temperature": 0.2
+        },
+        {
+            "id": "objective_analysis",
+            "type": "llm",
+            "objective": "Analyze the verified facts and opposing perspectives to provide an objective analysis of the topic.",
+            "model_name": "gpt-4o-mini",
+            "temperature": 0.3
+        },
+        {
+            "id": "summary_generation",
+            "type": "llm",
+            "objective": "Generate a concise summary of the findings from the objective analysis.",
+            "model_name": "gpt-4o-mini",
+            "temperature": 0.3
+        }
+    ],
+    "edges": [
+        {
+            "source": "START",
+            "target": "topic_research"
+        },
+        {
+            "source": "topic_research",
+            "target": "fact_validation"
+        },
+        {
+            "source": "topic_research",
+            "target": "opposing_perspectives"
+        },
+        {
+            "source": "fact_validation",
+            "target": "objective_analysis"
+        },
+        {
+            "source": "opposing_perspectives",
+            "target": "objective_analysis"
+        },
+        {
+            "source": "objective_analysis",
+            "target": "summary_generation"
+        },
+        {
+            "source": "summary_generation",
+            "target": "END"
+        }
+    ]
+}

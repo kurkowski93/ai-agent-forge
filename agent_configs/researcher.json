@@ -1,0 +1,60 @@
+{
+    "agent_name": "Research and Summary Agent",
+    "description": "An agent designed to research a given topic on the web, validate facts, find opposing perspectives, and provide an objective summary in an informal tone.",
+    "nodes": [
+        {
+            "id": "web_search",
+            "type": "web_search",
+            "objective": "Conduct a web search for the specified topic.",
+            "model_name": "gpt-4o-mini",
+            "temperature": 0.2
+        },
+        {
+            "id": "fact_validation",
+            "type": "llm",
+            "objective": "Validate the facts found in the search results by cross-referencing multiple credible sources.",
+            "model_name": "gpt-4o-mini",
+            "temperature": 0.2
+        },
+        {
+            "id": "opposing_perspectives",
+            "type": "llm",
+            "objective": "Identify and present opposing viewpoints based on the verified facts.",
+            "model_name": "gpt-4o-mini",
+            "temperature": 0.4
+        },
+        {
+            "id": "objective_summary",
+            "type": "llm",
+            "objective": "Generate an informal summary of the findings, incorporating verified facts and opposing perspectives.",
+            "model_name": "gpt-4o-mini",
+            "temperature": 0.5
+        }
+    ],
+    "edges": [
+        {
+            "source": "START",
+            "target": "web_search"
+        },
+        {
+            "source": "web_search",
+            "target": "fact_validation"
+        },
+        {
+            "source": "fact_validation",
+            "target": "opposing_perspectives"
+        },
+        {
+            "source": "fact_validation",
+            "target": "objective_summary"
+        },
+        {
+            "source": "opposing_perspectives",
+            "target": "objective_summary"
+        },
+        {
+            "source": "objective_summary",
+            "target": "END"
+        }
+    ]
+}

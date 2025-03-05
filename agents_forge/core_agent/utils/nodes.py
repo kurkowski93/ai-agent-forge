@@ -59,6 +59,16 @@ A good agent blueprint should:
 - Specify required knowledge domains and key skills
 - Accomplish one particular step in the overall workflow
 
+AVAILABLE NODE TYPES:
+1. "llm" - Language model interaction nodes for processing information, generating content, or making decisions
+2. "web_search" - Internet search nodes for retrieving real-time information from the web
+
+AGENT DESIGN PRINCIPLES:
+- Break complex tasks into 3-7 focused nodes for optimal performance
+- Each node should be atomic with a clear input and output
+- Design for reliability with clear step purposes
+- Consider parallel paths for concurrent operations when appropriate
+
 Current blueprint: {state.agent_blueprint if state.agent_blueprint else "No blueprint yet"}
 Messages: {state.messages}
 """)]
@@ -80,6 +90,17 @@ def ask_followup(state: AgentCreatorState) -> AgentCreatorState:
 You're an expert agent creator assistant. You need to ask the user follow-up questions to gather more information to build a high-quality agent.
 
 Current blueprint: {state.agent_blueprint if state.agent_blueprint else "No blueprint yet"}
+
+AVAILABLE NODE TYPES:
+1. "llm" - Language model interaction nodes for processing information, generating content, or making decisions
+2. "web_search" - Internet search nodes for retrieving real-time information from the web
+
+AGENT DESIGN CONSTRAINTS:
+- Agents must have 3-7 focused nodes for optimal performance
+- Each node must be atomic with a clear input and output
+- Every path must start from a "START" node and end at an "END" node
+- Parallel paths are allowed but no recursive paths or loops
+- Every node must have at least one incoming and one outgoing edge (except START/END)
 
 Your task is to ask insightful, specific questions that will help you understand:
 - The precise purpose of the agent
