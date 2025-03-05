@@ -16,7 +16,7 @@ A powerful terminal-based application for creating, testing, and managing AI age
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/yourusername/chameleon-ai-agent.git
 cd chameleon-ai-agent
 ```
 
@@ -27,8 +27,21 @@ pip install -r requirements.txt
 
 3. Make sure you have the required environment variables set (you can use a `.env` file):
 ```
-OPENAI_API_KEY=your_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+TAVILY_API_KEY=your_tavily_api_key_here
 ```
+
+## Dependencies
+
+This project relies on several key libraries:
+- LangGraph ecosystem (langgraph, langgraph-sdk, langgraph-checkpoint-sqlite)
+- LangChain ecosystem (langchain, langchain-core, langchain-openai, langchain-community)
+- Tavily API for search capabilities
+- Rich for beautiful terminal UI
+- Typer for command-line interface
+- Python-dotenv for environment variable management
+
+See `requirements.txt` for the complete list of dependencies.
 
 ## Usage
 
@@ -101,6 +114,14 @@ Agent configurations are stored as JSON files in the `agent_configs` directory. 
 - Node definitions (processing steps)
 - Edge definitions (connections between nodes)
 
+## Project Structure
+
+- `agent_cli.py`: Main CLI application
+- `agent_configs/`: Directory containing saved agent configurations
+- `agents_forge/`: Core agent implementation and agent generation logic
+- `requirements.txt`: List of Python dependencies
+- `.env`: Environment variables configuration
+
 ## Example Workflow
 
 1. Start a conversation: `python agent_cli.py chat`
@@ -119,5 +140,6 @@ The application attempts to display agent graphs directly in your terminal:
 ## Requirements
 
 - Python 3.8+
-- Required Python packages (see `requirements.txt`)
 - OpenAI API key
+- Tavily API key (for search capabilities)
+- Required Python packages (see `requirements.txt`)
